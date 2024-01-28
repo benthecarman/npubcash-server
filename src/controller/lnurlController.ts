@@ -1,9 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { nip19 } from "nostr-tools";
 
-import { parseInvoice } from ".././utils/lightning";
-import { lnProvider, wallet } from "..";
-import { Transaction, User } from "../models";
+import { wallet } from "..";
+import { User } from "../models";
 
 const metadata = "A cashu lightning address! Neat!";
 
@@ -44,29 +43,10 @@ export async function lnurlController(
     const err = new Error("Invalid amount");
     return next(err);
   }
-  const { pr: mintPr, hash: mintHash } = await wallet.requestMint(
-    Math.floor(amount / 1000),
-  );
-  const { amount: mintAmount } = parseInvoice(mintPr);
-  try {
-    const invoiceRes = await lnProvider.createInvoice(
-      mintAmount / 1000,
-      "Cashu Address",
-    );
-    await Transaction.createTransaction(
-      mintPr,
-      mintHash,
-      invoiceRes.paymentRequest,
-      invoiceRes.paymentHash,
-      username,
-    );
-    res.json({
-      pr: invoiceRes.paymentRequest,
-      routes: [],
-    });
-  } catch (e) {
-    console.log(e);
-    res.status(500);
-    res.json({ error: true, message: "Something went wrong..." });
-  }
+  const { pr } = await wallet.requestMint(Math.floor(amount / 1000));
+  // TO-DO add polling here
+  res.json({
+    pr,
+    routes: [],
+  });
 }
